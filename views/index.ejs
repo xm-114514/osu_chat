@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <div class="chat-container">
+      <label for="channel-select">チャンネルを選択:</label>
+      <select id="channel-select">
+          <option value="180">japanese</option>
+          <option value="52096544">bot</option>
+          <option value="52096544">test</option>
+      </select>
+      <div class="chat-box" id="chat-box">
+        <% messages.forEach(msg => { %>
+            <div class="message">
+                <img src="<%= msg.avatar_url %>" alt="<%= msg.name %>" class="avatar">
+                <strong><a target="_blank" href="https://osu.ppy.sh/u/<%= msg.name %>"><%= msg.name %>:</a></strong>
+                <span class="content"><%- msg.content %></span>
+                <span class="timestamp"><%= msg.timestamp %></span>
+            </div>
+        <% }) %>
+    </div>
+    
+        <input type="text" id="message-input" placeholder="メッセージを入力..." autofocus />
+        <button id="sendbutton">send</button> 
+        <button id="stop"
+        onclick="
+            if (interval) {
+                clearInterval(interval); 
+                interval = null; 
+                this.innerHTML = '再開';
+            } else {
+                interval = setInterval(getMessages, 4000); 
+                this.innerHTML = '停止';
+            }" 
+        >停止</button>
+    
+        <div id="visit">最新</div>
+    </div>
+
+    <script>
+      let interval = false;
+      const messageInput = document.getElementById('message-input');
+      const chatBox = document.getElementById('chat-box');
+      const sendbutton = document.getElementById('sendbutton');
+      const visit = document.getElementById('visit')
+      chatBox.scrollTop = chatBox.scrollHeight;
+      sendbutton.addEventListener('click', () => {
+        const message = messageInput.value.trim();
+        if (message !== '') {
+            messageInput.value = ''; 
+            sendMessage(message);
+            getMessages();
+        }
+      })
+      messageInput.addEventListener('keydown', async (event) => {
+          if (event.key === 'Enter') {
+              const message = messageInput.value.trim();
+              if (message !== '') {
+                  messageInput.value = ''; 
+                  await sendMessage(message);
+                  await getMessages();
+              }
+          }
+      });
+      async function sendMessage(message) {
+          const response = await fetch('/send', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ message: message })
+          });
+          if (response.ok) {
+              console.log('Message sent successfully');
+          } else {
+              console.error('Failed to send message');
+          }
+      }
+      function timestamp() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        visit.innerHTML = `更新: ${hours}時${minutes}分${seconds}秒`;
+      }
+      async function getMessages() {
+        const response = await fetch('/');
+        const html = await response.text();
+        chatBox.innerHTML = new DOMParser().parseFromString(html, 'text/html').querySelector('#chat-box').innerHTML;
+        timestamp();
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+      interval = setInterval(getMessages, 4000);
+
+      const channelSelect = document.getElementById('channel-select');
+      channelSelect.addEventListener('change', async () => {
+
+        const newChannel = channelSelect.value;
+        const response = await fetch('/change', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ channel: newChannel })
+        });
+        if (response.ok) {
+            console.log(`Channel changed to ${newChannel}`);
+            await getMessages(); 
+ 
+        } else {
+            console.error('Failed to change channel');
+        }
+      });
+    </script>
+</body>
+</html>
