@@ -8,19 +8,11 @@
 </head>
 <body>
   <div id="menu-icon" onclick="toggleMenu()">
-      &#9776; <!-- ハンバーガーアイコン -->
+      &#9776;
   </div>
     <div id="side-menu">
         <ul>
             <li><a href="#" id="bot-button" onclick="toggleBot()">bot</a></li>
-            <li>
-                <label for="react-word">反応するワード:</label>
-                <input type="text" id="react-word">
-            </li>
-            <li>
-                <label for="reply-word">返信するワード:</label>
-                <input type="text" id="reply-word">
-            </li>
         </ul>
     </div>
 
@@ -30,7 +22,7 @@
       <select id="channel-select">
           <option value="180">japanese</option>
           <option value="52096544">bot</option>
-          <option value="52096544">test</option>
+          <option value="40132650">test</option>
       </select>
       <div class="chat-box" id="chat-box">
         <% messages.forEach(msg => { %>
@@ -146,43 +138,105 @@
                     menuIcon.style.left = '10px';
                 }
         }
-        document.getElementById('react-word').addEventListener('input', (event) => {
-          const reactWord = event.target.value;
-          console.log('反応するワード:', reactWord);
-        });
+        
+        async function translate(message) {
+            try {
+                const response = await fetch('/trans', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: message.replace("!trans","") })
+                });
 
-        document.getElementById('reply-word').addEventListener('input', (event) => {
-            const replyWord = event.target.value;
-            console.log('返信するワード :', replyWord);
-        });
+                const data = await response.json();
+                return data.translatedText;
+            } catch (error) {
+                console.error('Error translating message:', error);
+                return message;
+            }
+        }
+
         const reactedMessages = new Set();
 
-        function checkAndReply(message, timestamp) {
-            const reactWord = document.getElementById('react-word').value;
-            const replyWord = document.getElementById('reply-word').value;
+        function checkAndReply(message, timestamp, user) {
+
+            if (message.includes("[trans]")) return;
             if (reactedMessages.has(timestamp)) {
                 console.log('This message has already been reacted to:', message);
                 return;
             }
-            if (botIsOn && reactWord !== '' && message.includes(reactWord)) {
-                sendMessage(replyWord);
+            if (translationList.has(user)) {
+                translate(message).then(translatedMessage => {
+                    sendMessage(`${user}: [trans] ${translatedMessage}`);
+                }).catch(error => {
+                    console.error('Error translating message:', error);
+                    sendMessage(`${user}: 翻訳に失敗しました`);
+                });
                 reactedMessages.add(timestamp);
             }
-            console.log(message,message.includes(reactWord))
+            if (botIsOn) {
+                processCommand(message, user,timestamp);
+                reactedMessages.add(timestamp);
+            }
         }
+
         function receiveMessage() {
             const lastMessageElement = [...document.querySelectorAll('[class="content"]')].pop();
             const lastTimestampElement = [...document.querySelectorAll('[class="timestamp"]')].pop();
-
-            if (lastMessageElement && lastTimestampElement) {
+            const lastuser = [...document.querySelectorAll('div [class="message"] > strong')].pop().innerText.replace(":","");
+            if (lastMessageElement && lastTimestampElement && lastuser) {
                 const lastMessage = lastMessageElement.textContent.trim();
                 const lastTimestamp = lastTimestampElement.textContent.trim();
-                checkAndReply(lastMessage, lastTimestamp);
+                checkAndReply(lastMessage, lastTimestamp, lastuser);
             }
         }
 
         let botIsOn = false;
         let bot = null;
+
+        let translationList = new Set(); 
+
+        function processCommand(message, user=undefined, timestamp) {
+            if (!message.startsWith('!trans')) return;
+            if (reactedMessages.has(timestamp)) return;
+            const args = message.slice(7).trim(); 
+            const [command, ...rest] = args.split(' '); 
+
+            switch (command) {
+                case '+':
+                    const addUser = rest.join(' ');
+                    reactedMessages.add(timestamp);
+                    sendMessage(`[trans] ${addUser}さんのメッセージを翻訳します`);
+                    translationList.add(addUser);
+                    break;
+
+                case '-':
+                    const removeUser = rest.join(' ');
+                    translationList.delete(removeUser);
+                    reactedMessages.add(timestamp);
+                    sendMessage(`[trans] ${removeUser}さんを翻訳リストから除外しました`);
+                    break;
+
+                case '.':
+                    translationList.add(user);
+                    reactedMessages.add(timestamp);
+                    sendMessage(`[trans] ${user}さんのメッセージを翻訳します`);
+                    break;
+
+                case 'off':
+                    botIsOn = false;
+                    reactedMessages.add(timestamp);
+                    sendMessage(`[trans] 翻訳を終了します`);
+                    break;
+
+                default:
+                    reactedMessages.add(timestamp);
+                    sendMessage('[trans] 無効なコマンドです');
+                    break;
+            }
+        }
+
 
         function toggleBot() {
             const botButton = document.getElementById('bot-button');
