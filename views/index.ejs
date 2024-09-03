@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div id="menu-icon" onclick="toggleMenu()">
+      &#9776; <!-- ハンバーガーアイコン -->
+  </div>
+    <div id="side-menu">
+        <ul>
+            <li><a href="#" id="bot-button" onclick="toggleBot()">bot</a></li>
+            <li>
+                <label for="react-word">反応するワード:</label>
+                <input type="text" id="react-word">
+            </li>
+            <li>
+                <label for="reply-word">返信するワード:</label>
+                <input type="text" id="reply-word">
+            </li>
+        </ul>
+    </div>
+
 
     <div class="chat-container">
       <label for="channel-select">チャンネルを選択:</label>
@@ -25,7 +42,6 @@
             </div>
         <% }) %>
     </div>
-    
         <input type="text" id="message-input" placeholder="メッセージを入力..." autofocus />
         <button id="sendbutton">send</button> 
         <button id="stop"
@@ -33,90 +49,168 @@
             if (interval) {
                 clearInterval(interval); 
                 interval = null; 
-                this.innerHTML = '再開';
+                this.innerHTML = 'サーバー再開';
             } else {
                 interval = setInterval(getMessages, 4000); 
-                this.innerHTML = '停止';
+                this.innerHTML = 'サーバー停止';
             }" 
-        >停止</button>
+        >サーバー停止</button>
     
         <div id="visit">最新</div>
     </div>
 
     <script>
-      let interval = false;
-      const messageInput = document.getElementById('message-input');
-      const chatBox = document.getElementById('chat-box');
-      const sendbutton = document.getElementById('sendbutton');
-      const visit = document.getElementById('visit')
-      chatBox.scrollTop = chatBox.scrollHeight;
-      sendbutton.addEventListener('click', () => {
-        const message = messageInput.value.trim();
-        if (message !== '') {
-            messageInput.value = ''; 
-            sendMessage(message);
-            getMessages();
-        }
-      })
-      messageInput.addEventListener('keydown', async (event) => {
-          if (event.key === 'Enter') {
-              const message = messageInput.value.trim();
-              if (message !== '') {
-                  messageInput.value = ''; 
-                  await sendMessage(message);
-                  await getMessages();
-              }
-          }
-      });
-      async function sendMessage(message) {
-          const response = await fetch('/send', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ message: message })
-          });
-          if (response.ok) {
-              console.log('Message sent successfully');
-          } else {
-              console.error('Failed to send message');
-          }
-      }
-      function timestamp() {
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const seconds = now.getSeconds().toString().padStart(2, '0');
-        visit.innerHTML = `更新: ${hours}時${minutes}分${seconds}秒`;
-      }
-      async function getMessages() {
-        const response = await fetch('/');
-        const html = await response.text();
-        chatBox.innerHTML = new DOMParser().parseFromString(html, 'text/html').querySelector('#chat-box').innerHTML;
-        timestamp();
+        let interval = false;
+        const messageInput = document.getElementById('message-input');
+        const chatBox = document.getElementById('chat-box');
+        const sendbutton = document.getElementById('sendbutton');
+        const visit = document.getElementById('visit')
         chatBox.scrollTop = chatBox.scrollHeight;
-      }
-      interval = setInterval(getMessages, 4000);
-
-      const channelSelect = document.getElementById('channel-select');
-      channelSelect.addEventListener('change', async () => {
-
-        const newChannel = channelSelect.value;
-        const response = await fetch('/change', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ channel: newChannel })
+        sendbutton.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (message !== '') {
+                messageInput.value = ''; 
+                sendMessage(message);
+                getMessages();
+            }
+        })
+        messageInput.addEventListener('keydown', async (event) => {
+            if (event.key === 'Enter') {
+                const message = messageInput.value.trim();
+                if (message !== '') {
+                    messageInput.value = ''; 
+                    await sendMessage(message);
+                    await getMessages();
+                }
+            }
         });
-        if (response.ok) {
-            console.log(`Channel changed to ${newChannel}`);
-            await getMessages(); 
- 
-        } else {
-            console.error('Failed to change channel');
+        async function sendMessage(message) {
+            const response = await fetch('/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            });
+            if (response.ok) {
+                console.log('Message sent successfully');
+            } else {
+                console.error('Failed to send message');
+            }
         }
-      });
-    </script>
+        function timestamp() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            visit.innerHTML = `更新: ${hours}時${minutes}分${seconds}秒`;
+        }
+        async function getMessages() {
+            const response = await fetch('/');
+            const html = await response.text();
+            chatBox.innerHTML = new DOMParser().parseFromString(html, 'text/html').querySelector('#chat-box').innerHTML;
+            timestamp();
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        interval = setInterval(getMessages, 4000);
+
+        const channelSelect = document.getElementById('channel-select');
+        channelSelect.addEventListener('change', async () => {
+
+            const newChannel = channelSelect.value;
+            const response = await fetch('/change', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ channel: newChannel })
+            });
+            if (response.ok) {
+                console.log(`Channel changed to ${newChannel}`);
+                await getMessages(); 
+    
+            } else {
+                console.error('Failed to change channel');
+            }
+        });
+
+
+        function toggleMenu() {
+                const menu = document.getElementById('side-menu');
+                const menuIcon = document.getElementById('menu-icon');
+                if (menu.style.left === '-250px') {
+                    menu.style.left = '0';
+                    menuIcon.style.left = '250px';
+                } else {
+                    menu.style.left = '-250px';
+                    menuIcon.style.left = '10px';
+                }
+        }
+        document.getElementById('react-word').addEventListener('input', (event) => {
+          const reactWord = event.target.value;
+          console.log('反応するワード:', reactWord);
+        });
+
+        document.getElementById('reply-word').addEventListener('input', (event) => {
+            const replyWord = event.target.value;
+            console.log('返信するワード :', replyWord);
+        });
+        const reactedMessages = new Set();
+
+        function checkAndReply(message, timestamp) {
+            const reactWord = document.getElementById('react-word').value;
+            const replyWord = document.getElementById('reply-word').value;
+            if (reactedMessages.has(timestamp)) {
+                console.log('This message has already been reacted to:', message);
+                return;
+            }
+            if (botIsOn && reactWord !== '' && message.includes(reactWord)) {
+                sendMessage(replyWord);
+                reactedMessages.add(timestamp);
+            }
+            console.log(message,message.includes(reactWord))
+        }
+        function receiveMessage() {
+            const lastMessageElement = [...document.querySelectorAll('[class="content"]')].pop();
+            const lastTimestampElement = [...document.querySelectorAll('[class="timestamp"]')].pop();
+
+            if (lastMessageElement && lastTimestampElement) {
+                const lastMessage = lastMessageElement.textContent.trim();
+                const lastTimestamp = lastTimestampElement.textContent.trim();
+                checkAndReply(lastMessage, lastTimestamp);
+            }
+        }
+
+        let botIsOn = true;
+        let bot = null;
+
+        function toggleBot() {
+            const botButton = document.getElementById('bot-button');
+            botIsOn = !botIsOn;
+            if (botIsOn) {
+                botButton.classList.remove('off');
+                botButton.classList.add('on');
+                botButton.textContent = 'bot (ON)';
+                console.log('Bot is now ON');
+                bot = setInterval(receiveMessage, 1000);
+            } else {
+                if (bot) {
+                    clearInterval(bot);
+                    bot = null;
+                }
+                botButton.classList.remove('on');
+                botButton.classList.add('off');
+                botButton.textContent = 'bot (OFF)';
+                console.log('Bot is now OFF');
+            }
+        }
+
+        window.onload = function() {
+            const botButton = document.getElementById('bot-button');
+            botButton.classList.add('on');
+            botButton.textContent = 'bot (ON)';
+        };
+
+</script>
 </body>
 </html>
