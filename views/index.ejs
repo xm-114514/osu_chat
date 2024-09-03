@@ -181,7 +181,7 @@
             }
         }
 
-        let botIsOn = true;
+        let botIsOn = false;
         let bot = null;
 
         function toggleBot() {
@@ -207,8 +207,8 @@
 
         window.onload = function() {
             const botButton = document.getElementById('bot-button');
-            botButton.classList.add('on');
-            botButton.textContent = 'bot (ON)';
+            botButton.classList.add('off');
+            botButton.textContent = 'bot (off)';
         };
 
 </script>
