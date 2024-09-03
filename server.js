@@ -4,7 +4,7 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-
+const langdetect = require('langdetect'); 
 const app = express();
 const env = process.env;
 
@@ -107,7 +107,7 @@ async function sendMessage(message, channel) {
     }
 }
 
-let channel = env.cid2;
+let channel = env.cid1;
 
 app.get('/', async (req, res) => {
     const messages = await getMessages(channel);
@@ -131,6 +131,44 @@ app.post('/change', (req, res) => {
         res.status(200).send(`Channel changed to ${newChannel}`);
     } else {
         res.status(400).send('Invalid channel ID');
+    }
+});
+
+const API_KEY = env.api;
+console.log(API_KEY)
+if (!API_KEY) {
+    console.error('DeepL APIキーが設定されていません。');
+    process.exit(1);
+}
+app.post('/trans', async (req, res) => {
+    const { text } = req.body;
+    try {
+        const detectedLang = langdetect.detect(text)[0].lang; 
+        let targetLang;
+
+        if (detectedLang === 'ja') {
+            targetLang = 'en';
+        } else {
+            targetLang = 'ja';
+        }
+
+        const response = await axios({
+            method: 'post',
+            url: 'https://api-free.deepl.com/v2/translate',
+            headers: {
+                'Authorization': `DeepL-Auth-Key ${API_KEY}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data: new URLSearchParams({
+                text: text,
+                target_lang: targetLang
+            }).toString()
+        });
+        const translatedText = response.data.translations[0].text;
+        res.json({ translatedText });
+    } catch (error) {
+        console.error('Error translating text:', error);
+        res.status(500).send('Translation failed');
     }
 });
 
