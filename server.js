@@ -42,9 +42,7 @@ function getMessages(channel) {
     .then(response => {
         if (response.status === 200) {
             const originalData = response.data;
-            function getUserById(userId, users) {
-                return users.find(u => u.id === userId);
-            }
+            const getUserById = (userId, users) => users.find(u => u.id === userId);
             const newStructure = originalData.messages.map(message => {
                 const user = getUserById(message.sender_id, originalData.users);
                 return {
@@ -143,14 +141,10 @@ if (!API_KEY) {
 app.post('/trans', async (req, res) => {
     const { text } = req.body;
     try {
-        const detectedLang = langdetect.detect(text)[0].lang; 
         let targetLang;
 
-        if (detectedLang === 'ja') {
-            targetLang = 'en';
-        } else {
-            targetLang = 'ja';
-        }
+        const detectedLang = langdetect.detect(text)[0].lang; 
+        if (detectedLang === 'ja') targetLang = 'en'; else targetLang = 'ja';
 
         const response = await axios({
             method: 'post',
