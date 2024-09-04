@@ -18,13 +18,13 @@
 
 
     <div class="chat-container">
-      <label for="channel-select">チャンネルを選択:</label>
-      <select id="channel-select">
-          <option value="180">japanese</option>
-          <option value="52096544">bot</option>
-          <option value="40132650">test</option>
-      </select>
-      <div class="chat-box" id="chat-box">
+        <label for="channel-select">チャンネルを選択:</label>
+        <select id="channel-select">
+            <option value="180">japanese</option>
+            <option value="52096544">bot</option>
+            <option value="40132650">test</option>
+    </select>
+    <div class="chat-box" id="chat-box">
         <% messages.forEach(msg => { %>
             <div class="message">
                 <img src="<%= msg.avatar_url %>" alt="<%= msg.name %>" class="avatar">
@@ -43,7 +43,7 @@
                 interval = null; 
                 this.innerHTML = 'サーバー再開';
             } else {
-                interval = setInterval(getMessages, 4000); 
+                interval = setInterval(getMessages, 2500); 
                 this.innerHTML = 'サーバー停止';
             }" 
         >サーバー停止</button>
@@ -84,11 +84,8 @@
                 },
                 body: JSON.stringify({ message: message })
             });
-            if (response.ok) {
-                console.log('Message sent successfully');
-            } else {
-                console.error('Failed to send message');
-            }
+            if (response.ok) console.log('Message sent successfully'); else  console.error('Failed to send message');
+            
         }
         function timestamp() {
             const now = new Date();
@@ -104,7 +101,7 @@
             timestamp();
             chatBox.scrollTop = chatBox.scrollHeight;
         }
-        interval = setInterval(getMessages, 4000);
+        interval = setInterval(getMessages, 2500);
 
         const channelSelect = document.getElementById('channel-select');
         channelSelect.addEventListener('change', async () => {
@@ -160,25 +157,18 @@
         const reactedMessages = new Set();
 
         function checkAndReply(message, timestamp, user) {
-
             if (message.includes("[trans]")) return;
             if (reactedMessages.has(timestamp)) {
                 console.log('This message has already been reacted to:', message);
                 return;
             }
             if (translationList.has(user)) {
-                translate(message).then(translatedMessage => {
-                    sendMessage(`${user}: [trans] ${translatedMessage}`);
-                }).catch(error => {
-                    console.error('Error translating message:', error);
-                    sendMessage(`${user}: 翻訳に失敗しました`);
-                });
-                reactedMessages.add(timestamp);
+                translate(message).then(translatedMessage => sendMessage(`${user}: [trans] ${translatedMessage}`)).catch(error => console.error('Error translating message:', error));
             }
             if (botIsOn) {
                 processCommand(message, user,timestamp);
-                reactedMessages.add(timestamp);
             }
+            reactedMessages.add(timestamp);
         }
 
         function receiveMessage() {
@@ -202,11 +192,9 @@
             if (reactedMessages.has(timestamp)) return;
             const args = message.slice(7).trim(); 
             const [command, ...rest] = args.split(' '); 
-
             switch (command) {
                 case '+':
                     const addUser = rest.join(' ');
-                    reactedMessages.add(timestamp);
                     sendMessage(`[trans] ${addUser}さんのメッセージを翻訳します`);
                     translationList.add(addUser);
                     break;
@@ -214,27 +202,24 @@
                 case '-':
                     const removeUser = rest.join(' ');
                     translationList.delete(removeUser);
-                    reactedMessages.add(timestamp);
                     sendMessage(`[trans] ${removeUser}さんを翻訳リストから除外しました`);
                     break;
 
                 case '.':
                     translationList.add(user);
-                    reactedMessages.add(timestamp);
                     sendMessage(`[trans] ${user}さんのメッセージを翻訳します`);
                     break;
 
                 case 'off':
                     botIsOn = false;
-                    reactedMessages.add(timestamp);
                     sendMessage(`[trans] 翻訳を終了します`);
                     break;
 
                 default:
-                    reactedMessages.add(timestamp);
                     sendMessage('[trans] 無効なコマンドです');
                     break;
             }
+            reactedMessages.add(timestamp);
         }
 
 
